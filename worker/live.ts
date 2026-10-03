@@ -36,6 +36,13 @@ export const LIVE_CUSHION =
   LIVE_CONTEXT_CEILING * PRICING_USD_PER_M.inputAudio +
   LIVE_OUTPUT_CEILING * PRICING_USD_PER_M.outputAudio;
 
+// Before credit or time runs out the assistant is asked, once, to say goodbye: it
+// can only do that while a generation still fits, so the margin sits above the
+// cushion. The goodbye is the last thing the session does.
+export const LIVE_FAREWELL_MARGIN = 35_000;
+export const LIVE_FAREWELL_LEAD_MS = 20_000;
+export const LIVE_FAREWELL = "[voice session ending]";
+
 function setup() {
   const c = buildLiveConfig();
   return {
@@ -80,6 +87,9 @@ export async function relayLive(
   let messageTimes: number[] = [],
     audioBytes = 0;
   let queuedText: string | null = null;
+  let farewell: "none" | "pending" | "sent" = "none";
+  let farewellCause = "SESSION_BUDGET";
+  let farewellGuard: ReturnType<typeof setTimeout> | undefined;
   let providerMessages = Promise.resolve();
   const usage: Record<string, any>[] = [];
   const stop = (reason: string, definitelyUnbilled = false) => {
@@ -87,6 +97,8 @@ export async function relayLive(
     finished = true;
     clearTimeout(timer);
     clearTimeout(connectTimer);
+    clearTimeout(farewellTimer);
+    clearTimeout(farewellGuard);
     const uncertain =
       !definitelyUnbilled && (inputPending || generating || !lastUsage);
     const charged = definitelyUnbilled
@@ -113,6 +125,25 @@ export async function relayLive(
     () => stop("PROVIDER_UNAVAILABLE", !ready),
     15_000,
   );
+  // Ask for the goodbye, then end. Waits for a reply in progress to finish.
+  const sendFarewell = () => {
+    if (finished || !upstream || farewell === "sent") return;
+    if (cost + LIVE_CUSHION > ticket.amount) return stop(farewellCause);
+    farewell = "sent";
+    queuedText = null;
+    inputPending = true;
+    farewellGuard = setTimeout(() => stop(farewellCause), 20_000);
+    upstream.send(JSON.stringify({ realtimeInput: { text: LIVE_FAREWELL } }));
+  };
+  const farewellTimer = setTimeout(
+    () => {
+      if (finished || !ready || farewell !== "none") return;
+      farewell = "pending";
+      farewellCause = "SESSION_EXPIRED";
+      if (!inputPending && !generating) sendFarewell();
+    },
+    Math.max(1, ticket.expiresAt - Date.now() - LIVE_FAREWELL_LEAD_MS),
+  );
   cb.register(() => stop("PAUSED"));
   socket.addEventListener("close", () => stop("BROWSER_CLOSED"));
   socket.addEventListener("error", () => stop("CONNECTION_ENDED"));
@@ -135,6 +166,8 @@ export async function relayLive(
       if (Object.keys(m).length !== 1) return stop("BAD_REQUEST");
       // Tool responses are server-produced; a browser can only acknowledge UI.
       if (m.toolResponse) return;
+      // Once the goodbye is on its way nothing new is accepted.
+      if (farewell !== "none") return;
       if (cost + LIVE_CUSHION > ticket.amount) return stop("SESSION_BUDGET");
       if (m.clientContent) {
         const c = m.clientContent;
@@ -283,8 +316,17 @@ export async function relayLive(
                 inputPending = true;
               }
               if (m.serverContent?.turnComplete) {
+                if (farewell === "sent") return stop(farewellCause);
                 if (cost + LIVE_CUSHION > ticket.amount)
                   return stop("SESSION_BUDGET");
+                if (
+                  farewell === "none" &&
+                  cost + LIVE_CUSHION + LIVE_FAREWELL_MARGIN > ticket.amount
+                ) {
+                  farewell = "pending";
+                  farewellCause = "SESSION_BUDGET";
+                }
+                if (farewell === "pending") return sendFarewell();
                 if (queuedText) {
                   const pending = queuedText;
                   queuedText = null;

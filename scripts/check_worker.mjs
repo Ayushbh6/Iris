@@ -56,6 +56,7 @@ let chatFails = false;
 let turnstileFails = false;
 const turnstileCalls = [];
 const alertCalls = [];
+const liveTexts = []; // text the mock Live provider received
 const sseBody = (events) =>
   events
     .map((e) => `event: ${e.event_type}\ndata: ${JSON.stringify(e)}\n\n`)
@@ -175,6 +176,7 @@ function worker(bindings) {
                   providerCalls.push({ url: request.url, body: m });
                   pair[1].send(JSON.stringify({ setupComplete: {} }));
                 } else if (m.realtimeInput?.text && bindings.MOCK_LIVE_USAGE) {
+                  liveTexts.push(m.realtimeInput.text);
                   const input =
                     bindings.MOCK_LIVE_USAGE === "budget" ? 10000 : 4000;
                   const output =
@@ -1610,6 +1612,7 @@ async function nextMessage(ws) {
 }
 for (const mode of [
   "reported",
+  "farewell",
   "budget",
   "pause",
   "setup",
@@ -1617,9 +1620,15 @@ for (const mode of [
   "block",
   "timeout",
 ]) {
+  liveTexts.length = 0;
   const mf = worker({
     ...safetyVars,
-    MOCK_LIVE_USAGE: mode,
+    // The deadline case deliberately withholds the provider reply, including
+    // its farewell, to exercise the hard timeout rather than an early close.
+    MOCK_LIVE_USAGE:
+      mode === "timeout" ? "" : mode === "farewell" ? "reported" : mode,
+    // Enough credit that "reported" is not asked to say goodbye; "farewell" is.
+    ...(mode === "reported" ? { SESSION_RESERVE_USD_MICROS: "250000" } : {}),
     ...(mode === "timeout" ? { SESSION_MAX_SECONDS: "1" } : {}),
   });
   try {
@@ -1653,6 +1662,15 @@ for (const mode of [
     if (mode === "reported") {
       assert.ok(m.usageMetadata);
       ws.send(JSON.stringify({ irisClose: true }));
+    } else if (mode === "farewell") {
+      // Little credit left after one exchange: the relay asks for a goodbye,
+      // forwards it, then closes with a reason the browser understands.
+      assert.ok(m.usageMetadata);
+      const goodbye = await nextMessage(ws);
+      assert.ok(goodbye.usageMetadata);
+      const notice = await nextMessage(ws);
+      assert.equal(notice.irisNotice.code, "SESSION_BUDGET");
+      assert.ok(liveTexts.includes("[voice session ending]"));
     } else if (mode === "budget") {
       assert.ok(m.usageMetadata);
       const notice = await nextMessage(ws);
@@ -1661,8 +1679,12 @@ for (const mode of [
     await sleep(30);
     const record = await detailOf(mf, ticket.conversationId);
     assert.equal(record.requests.length, 1);
-    if (mode === "reported")
+    if (mode === "reported") {
       assert.equal(record.requests[0].cost_usd_micros, 13200); // missing modalities: 4000*3 +100*12
+      assert.ok(!liveTexts.includes("[voice session ending]"));
+    }
+    if (mode === "farewell")
+      assert.equal(record.requests[0].cost_usd_micros, 26400); // the exchange plus the goodbye
     if (mode === "budget")
       assert.equal(record.requests[0].cost_usd_micros, 42000);
     assert.equal((await statusOf(mf)).budgets.day.reservedUsd, 0);

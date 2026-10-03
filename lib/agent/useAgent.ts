@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { connectVoice, type VoiceSession } from "./live.ts";
 import { MicCapture, Player } from "./audio";
+import { drainPlayback } from "./playbackDrain";
 import { executeToolCall, type ConnectAction } from "./tools";
 import type { RenderView } from "./render";
 import { liveSeed, type HistoryTurn } from "./history";
@@ -60,6 +61,17 @@ const problem = (error: unknown, fallback: string) =>
 
 const clip = (text: string, max: number) => text.slice(0, max);
 
+// Why the Worker ended a voice session (the close reason), in the visitor's words.
+const KEEP_GOING =
+  "You can keep going by typing, or tap the microphone to start a new voice conversation.";
+const VOICE_ENDINGS: Record<string, string> = {
+  SESSION_BUDGET: `That voice session has reached its limit. ${KEEP_GOING}`,
+  SESSION_EXPIRED: `That voice session reached its five-minute limit. ${KEEP_GOING}`,
+  PAUSED: "The assistant is paused for a moment. Please email Ayush.",
+};
+// These end after a goodbye, so the farewell is allowed to finish playing.
+const GRACEFUL_ENDINGS = new Set(["SESSION_BUDGET", "SESSION_EXPIRED"]);
+
 function historyOf(turns: Turn[]): HistoryTurn[] {
   return turns
     .filter((t) => t.text.trim() || t.views?.length)
@@ -101,6 +113,7 @@ export function useAgent() {
   });
   const nextId = useRef(1);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelDrain = useRef<(() => void) | null>(null);
   const gen = useRef(0); // bumps whenever a Live session is replaced or closed
   const statusRef = useRef<AgentStatus>("idle");
   const modeRef = useRef<Mode>("voice");
@@ -223,6 +236,8 @@ export function useAgent() {
     gen.current++; // ignore anything the old session still emits
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
+    cancelDrain.current?.();
+    cancelDrain.current = null;
     mic.current?.stop();
     mic.current = null;
     player.current?.close();
@@ -256,9 +271,9 @@ export function useAgent() {
 
   // Voice ran out (time or network): the conversation carries on by typing.
   const fallBackToText = useCallback(
-    (notice: string) => {
+    (notice: string, reason = "voice ended") => {
       closeVoice();
-      record().event("mode.text", { reason: "voice ended" });
+      record().event("mode.text", { reason });
       updateMode("text");
       setError(notice);
     },
@@ -485,10 +500,30 @@ export function useAgent() {
             setError("The voice connection was interrupted.");
             record().event("error", { where: "voice" });
           },
-          onclose: () => {
+          onclose: (event) => {
             if (myGen !== gen.current) return;
-            fallBackToText(
-              "The voice connection ended. You can keep going by typing.",
+            const code = event?.reason || "";
+            const notice =
+              VOICE_ENDINGS[code] ??
+              "The voice connection ended. You can keep going by typing.";
+            const finish = () => {
+              if (myGen === gen.current)
+                fallBackToText(notice, code || "voice ended");
+            };
+            if (!GRACEFUL_ENDINGS.has(code)) return finish();
+            // The connection has ended. Its expiry backstop must not interrupt
+            // playback, and there is no reason to keep capturing the microphone.
+            if (timer.current) clearTimeout(timer.current);
+            timer.current = null;
+            mic.current?.stop();
+            mic.current = null;
+            setMicOn(false);
+            // The goodbye is still playing: say why, let it finish, then hand over.
+            setError(notice);
+            cancelDrain.current?.();
+            cancelDrain.current = drainPlayback(
+              () => player.current?.pending() ?? false,
+              finish,
             );
           },
         });
@@ -507,10 +542,9 @@ export function useAgent() {
         updateStatus("live");
         timer.current = setTimeout(
           () =>
-            fallBackToText(
-              "Voice time is up. You can keep going by typing, or start a new conversation.",
-            ),
-          Math.max(0, body.expiresAt - Date.now() - 2000),
+            fallBackToText(VOICE_ENDINGS.SESSION_EXPIRED, "SESSION_EXPIRED"),
+          // The Worker ends the session first, after a spoken goodbye; this is the backstop.
+          Math.max(0, body.expiresAt - Date.now() + 6000),
         );
         if (resume) {
           // Hand the earlier thread to the voice model before it speaks.

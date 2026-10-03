@@ -154,6 +154,11 @@ export class Player {
     this.gain.gain.value = muted ? 0 : 1;
   }
 
+  // Audio still queued or playing.
+  pending() {
+    return this.sources.size > 0;
+  }
+
   // 0..1 output loudness for the live indicator.
   level() {
     this.analyser.getByteTimeDomainData(this.levelData);

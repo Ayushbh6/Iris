@@ -11,7 +11,7 @@
     "EXPERIMENT_LIMIT_USD_MICROS": "0",
     "MONTHLY_LIMIT_USD_MICROS": "0",
     "DAILY_LIMIT_USD_MICROS": "0",
-    "SESSION_RESERVE_USD_MICROS": "150000",
+    "SESSION_RESERVE_USD_MICROS": "250000",
     "SESSION_MAX_SECONDS": "300",
     "NETWORK_SESSIONS_PER_HOUR": "24",
     "CHAT_REQUESTS_PER_HOUR": "200",
@@ -34,7 +34,13 @@
     "MESSAGE_REQUESTS_PER_HOUR": "5",
     "ALLOWED_ORIGINS": "http://127.0.0.1:3107,http://localhost:3107",
   },
-  "ratelimits": [{ "name": "API_RATE_LIMIT", "namespace_id": "103202601", "simple": { "limit": 90, "period": 60 } }],
+  "ratelimits": [
+    {
+      "name": "API_RATE_LIMIT",
+      "namespace_id": "103202601",
+      "simple": { "limit": 90, "period": 60 },
+    },
+  ],
   "durable_objects": {
     "bindings": [{ "name": "PORTFOLIO", "class_name": "PortfolioStore" }],
   },

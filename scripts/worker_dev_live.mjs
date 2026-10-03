@@ -14,7 +14,7 @@ const vars = {
   MONTHLY_LIMIT_USD_MICROS: "20000000",
   DAILY_LIMIT_USD_MICROS: "10000000",
   NETWORK_SESSIONS_PER_HOUR: "20",
-  SESSION_RESERVE_USD_MICROS: "100000",
+  SESSION_RESERVE_USD_MICROS: "250000",
   CHAT_REQUESTS_PER_HOUR: "120",
   VISITOR_TOKENS_PER_HOUR: "30",
   // Cloudflare's published Turnstile TEST secret: always passes, so no account is needed locally.

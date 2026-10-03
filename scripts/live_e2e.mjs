@@ -11,6 +11,7 @@ import { executeToolCall } from "../lib/agent/tools.ts";
 import { liveSeed } from "../lib/agent/history.ts";
 import { PRICING_USD_PER_M } from "../lib/agent/config.ts";
 
+const SESSION_RESERVE = Number(process.env.SESSION_RESERVE || 250000);
 const TEST_PORT = process.env.LIVE_TEST_PORT || "8791";
 const WORKER = `http://127.0.0.1:${TEST_PORT}`;
 const STATE = `.wrangler/live-e2e-${Date.now()}`;
@@ -61,7 +62,10 @@ const worker = spawn(
     "--var",
     "ADMIN_TOKEN:live-e2e-admin-token-not-for-production",
     "--var",
-    "SESSION_MAX_SECONDS:180",
+    `SESSION_MAX_SECONDS:${process.env.SESSION_SECONDS || 180}`,
+    // Scenario 10 shrinks the session credit to reach the goodbye quickly.
+    "--var",
+    `SESSION_RESERVE_USD_MICROS:${SESSION_RESERVE}`,
     "--persist-to",
     STATE,
   ],
@@ -154,7 +158,7 @@ function wav(pcm, rate = 24000) {
 // One Live connection driven like the browser will: tool calls go through the
 // shared executeToolCall, audio is collected, each turn is timed.
 async function conversation(name, token, { configOverride } = {}) {
-  const record = { name, turns: [], usages: [], errors: [] };
+  const record = { name, turns: [], usages: [], errors: [], saidAll: "" };
   let turn,
     resolveTurn,
     closed = false;
@@ -198,8 +202,10 @@ async function conversation(name, token, { configOverride } = {}) {
             }
           if (sc?.inputTranscription?.text)
             turn.heard += sc.inputTranscription.text;
-          if (sc?.outputTranscription?.text)
+          if (sc?.outputTranscription?.text) {
             turn.said += sc.outputTranscription.text;
+            record.saidAll += sc.outputTranscription.text;
+          }
           if (sc?.turnComplete && (turn.audioBytes > 0 || turn.said)) {
             turn.totalMs = Date.now() - turn.sentAt;
             resolveTurn();
@@ -1038,6 +1044,85 @@ try {
     );
   }
 
+  // 10. The goodbye: when session credit runs low Iris says so and the session ends.
+  // Needs a small credit, so it is not in the default run:
+  //   SESSION_RESERVE=140000 ONLY=10 npm run live:test
+  if (run(10)) {
+    const c = await conversation("10-farewell", await newSession());
+    const questions = [
+      "[visitor joined]",
+      "Tell me about Ayush's experience.",
+      "What is Socrates?",
+      "What is Checker?",
+      "What did he do at Deloitte?",
+      "And at ITG?",
+      "What is the SEC Summariser?",
+      "What are his main skills?",
+      "Which programming languages does he use?",
+    ];
+    let asked = 0;
+    for (const q of questions) {
+      if (c.isClosed()) break;
+      await c.ask(q, `turn ${asked + 1}`);
+      asked++;
+    }
+    for (let i = 0; i < 60 && !c.isClosed(); i++)
+      await new Promise((r) => setTimeout(r, 500));
+    const closedByServer = c.isClosed();
+    const rec = c.end();
+    report.conversations.push(rec);
+    const tail = rec.saidAll.slice(-260);
+    check(
+      "farewell: the Worker ended the session itself (credit ran low)",
+      closedByServer && rec.closeReason === "SESSION_BUDGET",
+      `after ${asked} turns, close reason ${rec.closeReason}`,
+    );
+    check(
+      "farewell: Iris said goodbye and pointed to typing or a new voice session",
+      /pleasure|bye|farewell|take care|talk soon|speak soon|thank/i.test(
+        tail,
+      ) &&
+        /typ|new (voice )?(conversation|session)|microphone|continue/i.test(
+          tail,
+        ),
+      tail,
+    );
+    check(
+      "farewell: the session stayed within its credit",
+      rec.costUsd < SESSION_RESERVE / 1e6,
+      `${rec.costUsd.toFixed(4)} USD`,
+    );
+  }
+
+  // 11. The goodbye at the time limit. Short session so it runs quickly:
+  //   SESSION_SECONDS=50 ONLY=11 npm run live:test
+  if (run(11)) {
+    const c = await conversation("11-time-farewell", await newSession());
+    await c.ask("[visitor joined]", "greeting");
+    await c.ask("What is Checker, in one sentence?", "question");
+    for (let i = 0; i < 120 && !c.isClosed(); i++)
+      await new Promise((r) => setTimeout(r, 500));
+    const closedByServer = c.isClosed();
+    const rec = c.end();
+    report.conversations.push(rec);
+    const tail = rec.saidAll.slice(-260);
+    check(
+      "time limit: the Worker ended the session itself",
+      closedByServer && rec.closeReason === "SESSION_EXPIRED",
+      `close reason ${rec.closeReason}`,
+    );
+    check(
+      "time limit: Iris said goodbye before the end",
+      /pleasure|bye|farewell|take care|talk soon|speak soon|thank/i.test(
+        tail,
+      ) &&
+        /typ|new (voice )?(conversation|session)|microphone|continue/i.test(
+          tail,
+        ),
+      tail,
+    );
+  }
+
   // Aggregate latency and cost.
   const turns = report.conversations
     .flatMap((c) => c.turns)
@@ -1061,8 +1146,8 @@ try {
     ...report.conversations.map((c) => c.costUsd ?? 0),
   );
   check(
-    "every session cost below the 0.40 USD reservation",
-    perSession < 0.4,
+    `every session cost within the ${SESSION_RESERVE / 1e6} USD reservation`,
+    perSession <= SESSION_RESERVE / 1e6,
     `max ${perSession.toFixed(4)} USD, total ${report.costUsd.toFixed(4)} USD`,
   );
   check(
