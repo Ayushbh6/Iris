@@ -1,0 +1,46 @@
+{
+  "name": "iris",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3107",
+    "build": "next build",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/build_knowledge.mjs --check && node --experimental-strip-types --test tests/*.test.ts",
+    "db:check": "python3 scripts/check_schema.py",
+    "worker:dev": "wrangler dev --config worker/wrangler.jsonc --port 8787",
+    "worker:typecheck": "tsc -p worker/tsconfig.json",
+    "worker:test": "node scripts/check_worker.mjs",
+    "format": "prettier --write app components lib worker tests scripts/*.mjs",
+    "knowledge:build": "node scripts/build_knowledge.mjs",
+    "worker:dev:live": "node scripts/worker_dev_live.mjs",
+    "live:test": "node scripts/live_e2e.mjs",
+    "rehearse": "node scripts/rehearse.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "deploy": "node scripts/deploy.mjs",
+    "deploy:secrets": "node scripts/secrets.mjs"
+  },
+  "dependencies": {
+    "@fontsource/manrope": "^5.3.0",
+    "@fontsource/newsreader": "^5.3.0",
+    "@google/genai": "^2.25.0",
+    "lucide-react": "^1.47.0",
+    "next": "^16.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260919.1",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "esbuild": "^0.28.2",
+    "miniflare": "^5.20260918.0-alpha",
+    "prettier": "^3.9.8",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.135.0"
+  },
+  "type": "module",
+  "description": "A voice and text portfolio assistant with generative UI and bounded anonymous access."
+}

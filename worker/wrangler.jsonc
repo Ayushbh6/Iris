@@ -1,0 +1,43 @@
+{
+  "name": "ayush-portfolio-local",
+  "main": "index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  // Secrets, never in this file: GEMINI_API_KEY, TURNSTILE_SECRET, VISITOR_SECRET,
+  // ADMIN_TOKEN, INVITE_CODES, ALERT_WEBHOOK_URL. Use `wrangler secret put`
+  // remotely and --env-file locally. See docs/SAFETY.md.
+  "vars": {
+    "AI_ENABLED": "false",
+    "EXPERIMENT_LIMIT_USD_MICROS": "0",
+    "MONTHLY_LIMIT_USD_MICROS": "0",
+    "DAILY_LIMIT_USD_MICROS": "0",
+    "SESSION_RESERVE_USD_MICROS": "150000",
+    "SESSION_MAX_SECONDS": "300",
+    "NETWORK_SESSIONS_PER_HOUR": "24",
+    "CHAT_REQUESTS_PER_HOUR": "200",
+    "CHAT_TOKEN_CAP": "150000",
+    "CHAT_RESERVE_USD_MICROS": "100000",
+    // Per visitor per UTC day (about four voice sessions), and with an invite link.
+    "VISITOR_DAILY_USD_MICROS": "600000",
+    "VISITOR_INVITED_DAILY_USD_MICROS": "3000000",
+    // New visitor tokens per network per hour, and token lifetime.
+    "VISITOR_TOKENS_PER_HOUR": "24",
+    "VISITOR_TOKEN_DAYS": "30",
+    "VISITOR_SESSIONS_PER_HOUR": "4",
+    "VISITOR_CHAT_REQUESTS_PER_HOUR": "40",
+    "NETWORK_DAILY_USD_MICROS": "1200000",
+    "TURNSTILE_HOSTNAMES": "127.0.0.1,localhost",
+    // Records. Conversations are kept 90 days, messages left for Ayush a year.
+    "CONVERSATION_RETENTION_DAYS": "90",
+    "MESSAGE_RETENTION_DAYS": "365",
+    "LOG_REQUESTS_PER_HOUR": "300",
+    "MESSAGE_REQUESTS_PER_HOUR": "5",
+    "ALLOWED_ORIGINS": "http://127.0.0.1:3107,http://localhost:3107",
+  },
+  "ratelimits": [{ "name": "API_RATE_LIMIT", "namespace_id": "103202601", "simple": { "limit": 90, "period": 60 } }],
+  "durable_objects": {
+    "bindings": [{ "name": "PORTFOLIO", "class_name": "PortfolioStore" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PortfolioStore"] }],
+  "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": true }],
+}

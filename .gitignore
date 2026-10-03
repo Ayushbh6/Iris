@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+.wrangler/
+.env*
+.dev.vars*
+*.tsbuildinfo
+output/
+
+.playwright-cli/
+.local/
+
+# Local references and machine files
+design-references/
+.DS_Store
+*.log
+*.pem
+*.key
+!.env.example

@@ -1,0 +1,70 @@
+{
+  // Production: one Worker serves the static site (../out) and the API, so the
+  // browser only ever talks to its own origin. Deploy with `npm run deploy`.
+  "name": "ayushbh",
+  "main": "index.ts",
+  "compatibility_date": "2026-09-01",
+  // First deploy lives on https://ayushbh.<your-subdomain>.workers.dev.
+  // Once ayushbh.com works, uncomment "routes" below and set this to false.
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  // "routes": [
+  //   { "pattern": "ayushbh.com", "custom_domain": true },
+  //   { "pattern": "www.ayushbh.com", "custom_domain": true }
+  // ],
+  "assets": {
+    "directory": "../out",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    // Only API calls wake the Worker; pages, scripts and images are served
+    // straight from Cloudflare's edge (free and unmetered).
+    "run_worker_first": [
+      "/session",
+      "/live",
+      "/chat",
+      "/visitor",
+      "/log",
+      "/message",
+      "/health",
+      "/admin/*",
+      "!/admin/",
+    ],
+  },
+  // Secrets, never in this file: GEMINI_API_KEY, TURNSTILE_SECRET, VISITOR_SECRET,
+  // ADMIN_TOKEN, INVITE_CODES, ALERT_WEBHOOK_URL. `npm run deploy:secrets` sets them.
+  "vars": {
+    "AI_ENABLED": "true",
+    // Admission spend caps in millionths of a dollar: 3 USD/day, 60 USD/month, 150 USD ever.
+    "DAILY_LIMIT_USD_MICROS": "3000000",
+    "MONTHLY_LIMIT_USD_MICROS": "60000000",
+    "EXPERIMENT_LIMIT_USD_MICROS": "150000000",
+    "SESSION_RESERVE_USD_MICROS": "150000",
+    "SESSION_MAX_SECONDS": "300",
+    "NETWORK_SESSIONS_PER_HOUR": "24",
+    "CHAT_REQUESTS_PER_HOUR": "200",
+    "CHAT_TOKEN_CAP": "150000",
+    "CHAT_RESERVE_USD_MICROS": "100000",
+    "VISITOR_DAILY_USD_MICROS": "600000",
+    "VISITOR_INVITED_DAILY_USD_MICROS": "3000000",
+    "VISITOR_TOKENS_PER_HOUR": "24",
+    "VISITOR_TOKEN_DAYS": "30",
+    "VISITOR_SESSIONS_PER_HOUR": "4",
+    "VISITOR_CHAT_REQUESTS_PER_HOUR": "40",
+    "NETWORK_DAILY_USD_MICROS": "1200000",
+    "TURNSTILE_HOSTNAMES": "ayushbh.ayushbh.workers.dev,ayushbh.com,www.ayushbh.com",
+    "CONVERSATION_RETENTION_DAYS": "90",
+    "MESSAGE_RETENTION_DAYS": "365",
+    "LOG_REQUESTS_PER_HOUR": "300",
+    "MESSAGE_REQUESTS_PER_HOUR": "5",
+    // Same-origin calls are always allowed; this list is only for other sites.
+    "ALLOWED_ORIGINS": "",
+    "CANONICAL_HOST": "ayushbh.com",
+  },
+  "ratelimits": [{ "name": "API_RATE_LIMIT", "namespace_id": "103202601", "simple": { "limit": 90, "period": 60 } }],
+  "durable_objects": {
+    "bindings": [{ "name": "PORTFOLIO", "class_name": "PortfolioStore" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PortfolioStore"] }],
+  "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": true }],
+}
