@@ -5,6 +5,7 @@ import "@fontsource/manrope/latin-400.css";
 import "@fontsource/manrope/latin-500.css";
 import "@fontsource/manrope/latin-600.css";
 import "./globals.css";
+import "./projects.css";
 import "./conversation.css";
 const SITE = "https://ayushbh.com";
 const TITLE = "Ayush Bhattacharya — Intelligent software";

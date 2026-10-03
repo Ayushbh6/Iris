@@ -1,4 +1,6 @@
 import { ArrowRight, ArrowUpRight } from "lucide-react";
+import ProjectCaseStudy from "./ProjectCaseStudy";
+import ProjectVisual from "./ProjectVisual";
 import { projects } from "../lib/content";
 import type { RenderBlock, RenderView } from "../lib/agent/render";
 
@@ -119,6 +121,15 @@ function Block({ block }: { block: RenderBlock }) {
             {card.name}
             <em>{card.subtitle}</em>
           </h3>
+          {block.project !== "this_website" && (
+            <div className="gv-project-visual">
+              <ProjectVisual
+                project={
+                  block.project === "sec_summariser" ? "sec" : block.project
+                }
+              />
+            </div>
+          )}
           <p className="project-detail">{card.detail}</p>
           {block.emphasis && <p className="gv-emphasis">{block.emphasis}</p>}
           <div className="stack">
@@ -218,6 +229,17 @@ export default function GenerativeView({
   view: RenderView;
   eyebrow?: string;
 }) {
+  const first = view.blocks[0];
+  if (
+    view.blocks.length === 1 &&
+    first.kind === "project" &&
+    first.project !== "this_website"
+  ) {
+    const id = first.project === "sec_summariser" ? "sec" : first.project;
+    return (
+      <ProjectCaseStudy key={id} projectId={id} emphasis={first.emphasis} />
+    );
+  }
   return (
     <div className="gv" key={view.title}>
       <p className="eyebrow">{eyebrow}</p>

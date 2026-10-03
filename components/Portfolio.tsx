@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
+import ProjectVisual from "./ProjectVisual";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -149,35 +150,10 @@ export default function Portfolio() {
                   <h3>{p.name}</h3>
                   <p>{p.description}</p>
                 </div>
-                <div className={"project-art " + p.id} aria-hidden="true">
-                  {p.id === "socrates" ? (
-                    <>
-                      <span className="orbit o1" />
-                      <span className="orbit o2" />
-                      <span className="orbit o3" />
-                      <span className="core">s.</span>
-                    </>
-                  ) : p.id === "checker" ? (
-                    <>
-                      <span className="paper back" />
-                      <span className="paper front">
-                        <i />
-                        <i />
-                        <i />
-                        <b>✓</b>
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="chart-bar" />
-                      <span className="chart-bar" />
-                      <span className="chart-bar" />
-                      <span className="chart-bar" />
-                      <span className="chart-bar" />
-                    </>
-                  )}
+                <div className="project-preview" aria-hidden="true">
+                  <ProjectVisual project={p.id} />
                 </div>
-                <ArrowUpRight className="project-arrow" />
+                <ArrowUpRight className="project-arrow" aria-hidden="true" />
               </button>
             ))}
           </div>

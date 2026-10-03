@@ -32,12 +32,6 @@ export const EXPLORE_ITEMS = [
 ] as const;
 export type ExploreId = (typeof EXPLORE_ITEMS)[number]["id"];
 
-const REPOS = {
-  socrates: "socrates_repo",
-  checker: "checker_repo",
-  sec_summariser: "sec_repo",
-} as const;
-
 export function exploreView(id: ExploreId): RenderView {
   if (id === "experience")
     return {
@@ -60,13 +54,9 @@ export function exploreView(id: ExploreId): RenderView {
     (p) => p.id === (id === "sec_summariser" ? "sec" : id),
   )!;
   return {
-    title: "Selected work",
+    title: project.name,
     layout: "stack",
-    blocks: [
-      { kind: "project", project: id },
-      { kind: "flow", heading: "Conceptual flow", steps: [...project.nodes] },
-      { kind: "links", links: [REPOS[id]] },
-    ],
+    blocks: [{ kind: "project", project: id }],
   };
 }
 

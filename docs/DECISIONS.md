@@ -74,7 +74,6 @@ Recommended production caps: 3 USD/day, 60 USD/month, 150 USD ever, plus a Googl
 
 Verified: Worker tests (forgery, expiry, per-visitor and per-network limits, IPv6 grouping, invites, ownership, kill switch, block, owner endpoints, alerts), live suite against the real local Worker and Cloudflare's test Turnstile endpoint, and a browser run with Cloudflare's real Turnstile script (token issued, invite recognised, kill switch message shown). One live-suite scenario (voice job-fit table) missed once in four runs: the Live model occasionally answers without rendering the table. Not verified: production Turnstile keys, a real alert delivery to a phone, Cloudflare WAF rule (dashboard-only), Google's cap behaviour.
 
-
 # Phase 5 — records, inbox, owner viewer, retention — 2 October 2026
 
 Decision: conversations are now saved, reversing the Phase 3 "no storage" line. The reason is the owner's: transcripts show what recruiters ask, where the assistant fails and what to improve. Visitors never see a history (no login), so this is a one-way log. The privacy page, the notice under the composer and the assistant's own policy all say so; the assistant must never call a chat private.
@@ -132,3 +131,11 @@ Voice now uses a server WebSocket relay with one-use local tickets. Model setup 
 Anonymous renewal preserves browser identity through an essential HttpOnly cookie. Each paid request revalidates the invite code; network daily dollars cover fresh tokens. Rolling limits and bursts exist per visitor and network, with edge and global attempt limits before authentication. Broader network request limits allow multiple visitors in a shared office. Rejected requests create no conversation records. Native SVG arrows replace emoji-prone characters in Chat instead and footer GitHub/CV links.
 
 Verified and deployed 3 October 2026: frontend/Worker typechecks, 21/21 unit checks, unchanged nine-table schema, Worker regression suite, and 37/37 real Gemini checks (voice fit tools, text and records, project-click comments, resume memory, Iris greeting and spoken language switching). Production version `a490c76f-73b5-40f2-8052-5efab68ca402` at `https://ayushbh.ayushbh.workers.dev/` passed 13/13 public smoke checks after edge headers propagated. Browser verification at 390 x 844 confirmed the three SVG arrows, no horizontal overflow, and the public text greeting introducing Iris. A physical iPhone microphone/Safari session and Google billing-account settings remain unverified.
+
+# Public Iris repository and project stories — 3 October 2026
+
+Published only the website application as `Ayushbh6/Iris`, with a standalone README, environment example and GitHub Actions checks. The parent Me workspace is not a Git repository. Local databases, generated output, credentials and design references are ignored. Local scripts now support an environment file inside a standalone clone while preserving the original workspace fallback.
+
+Reviewed the public main branches of Socrates, DPA_Guru and SEC-Summariser; pinned evidence is in `docs/PROJECTS.md`. Curated project pages now include implementation details, source links and original interactive workflow illustrations. Landing previews and assistant project blocks reuse the artwork. The diagrams are labelled illustrations, not product screenshots. Iris's approved knowledge was updated from the same source review; SEC Summariser has three tools in code despite its old two-tool README.
+
+Verified frontend/Worker typechecks, 21 unit checks, Worker regression suite, production build and 14 local smoke checks. Browser checks at 1440 x 1000 and 390 x 844 covered all three pages, step changes and no horizontal overflow. A real Gemini text conversation correctly described SEC Summariser's three tools and rendered their explanation. No source changes were made to the three reviewed repositories.

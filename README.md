@@ -13,7 +13,7 @@ Iris is the voice and text assistant on [Ayush Bhattacharya’s personal website
 - **Voice and text, one thread.** Gemini Live handles speech; Gemini Flash handles written conversations. Switching modes carries the recent conversation with it.
 - **An interface the assistant can use.** Two validated tools, `render` and `connect`, show project details, timelines, skill comparisons and contact actions. The model composes typed UI blocks rather than arbitrary HTML.
 - **Awareness of the page.** Opening a project sends a small contextual event to Iris, so she can explain what you are looking at without reopening the page.
-- **Useful without the AI.** The portfolio, project pages and CV remain available without starting a paid conversation.
+- **Useful without the AI.** Three source-reviewed project stories have interactive workflow diagrams and implementation details. The portfolio and CV remain available without starting a paid conversation. See [project evidence](docs/PROJECTS.md).
 - **Anonymous access with bounded spend.** Visitor and network limits, Turnstile, budget reservations and a server-owned voice relay govern access. Pause and block controls can end active sessions.
 - **An owner’s view.** Transcripts, tool events, usage and visitor messages are available in an authenticated admin viewer. Audio is never stored.
 

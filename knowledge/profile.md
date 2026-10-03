@@ -1,6 +1,6 @@
 # Ayush Bhattacharya — public profile
 
-Knowledge version: v1 draft, 1 October 2026. Source: one-page AI and Risk CVs dated 1 October 2026, `resumes/source/projects.json`, `website/lib/content.ts`. Everything here is approved for the agent to say. Anything not here, the agent does not know.
+Knowledge version: v2, 3 October 2026. Experience source: approved one-page AI and Risk CVs dated 1 October 2026. Project implementation: public repository review recorded in `docs/PROJECTS.md` and `lib/content.ts`. Everything here is approved for the agent to say. Anything not here, the agent does not know.
 
 ## In one line
 
@@ -53,30 +53,35 @@ Bengaluru, India · October 2020 – June 2022
 
 ## Projects
 
-### Socrates — AI workspace for long-running agent work
-- Local-first AI workspace for coding and investigation: orchestration, tool execution, MCP servers, persistent memory and structured context compression.
-- Dedicated evaluation harnesses for compression, retrieval, memory routing and cost.
-- Central question: how can an assistant keep useful context across sessions without carrying everything into every interaction?
-- Stack: TypeScript, Next.js, Fastify, SQLite.
+### Socrates — local-first AI workspace
+- A coding and investigation workspace built with TypeScript, Next.js, Fastify and SQLite. Projects contain conversations, local tool activity and persistent history.
+- The stable Classic workspace runs shell, file/search/patch, Git and MCP tools, streams results, and supports cancellation and restart recovery.
+- A structured CompressorAgent compresses working context and preserves source anchors. Trace retrieval searches previous visible conversations and tool evidence so exact details can be recovered.
+- Dedicated evaluation harnesses exist for compression, retrieval and memory routing; no numerical performance claims are established here.
+- The public main branch is the Classic product; experimental V2 work is separate and must not be described as shipped in Classic.
 - Why it matters to him: Socrates is Ayush's favourite project and a personal dream — building his own "perfect" agent harness that feels truly personal and seamless to use.
-- Status: independent project in active development (V2 in progress).
 - Link: https://github.com/Ayushbh6/Socrates
 
-### Checker (formerly DPA Guru) — AI contract-risk review
-- AI-assisted review of data-processing agreements against approved criteria.
-- Document ingestion, hybrid semantic + keyword retrieval (pgvector), page-level source references, human approval in the loop.
-- Independent demo using public documents — not a client deployment.
-- Stack: Python, Next.js, PostgreSQL, pgvector.
+### Checker (formerly DPA Guru) — evidence-linked DPA review
+- An independent demo using public documents, not a client deployment. It helps humans review data-processing agreements against approved criteria.
+- The workflow collects vendor context and review documents, drafts criteria for human approval, runs criterion-level reviews and assembles an approval pack with an evidence appendix.
+- Separate criteria, review, approval-pack and copilot agents share a Python agent runtime. A review tool can fetch exact document pages.
+- Document and knowledge-base retrieval combine pgvector similarity with PostgreSQL full-text search using reciprocal rank fusion. Document chunks keep page ranges, and evidence quotes are matched back to source pages.
+- Stack: Python, FastAPI, Next.js, PostgreSQL, pgvector. Frontend includes review screens and document export.
 - Link: https://github.com/Ayushbh6/DPA_Guru
 
-### SEC Summariser — financial filing analysis
-- AI research app that retrieves SEC filings by company, filing type and date range.
-- Filing ingestion, table-preserving document conversion, stored-content retrieval and conversational analysis.
-- Stack: TypeScript, Next.js, Supabase, PostgreSQL, Gemini.
+### SEC Summariser — conversational filing research
+- A financial research app that finds SEC EDGAR filings by company name/ticker, filing type and date range, stores them and supports follow-up analysis.
+- The current code has THREE tools: researcher (fetch/store filings), content_retriever (read stored filing content), get_report_metadata (dates, identifiers and source URLs). The repository README's two-tool description is outdated.
+- Resolves company identifiers, checks existing accession numbers per user, and converts HTML to Markdown with a custom table-preserving rule.
+- Supabase stores conversations, filing metadata and document content. API routes validate the user's Supabase token; queries scope results to that user. Do not claim a separately audited security certification or verified live RLS configuration.
+- Stack: TypeScript, Next.js, Supabase/PostgreSQL, Vercel AI SDK and Gemini.
+- No measured performance results, live deployment status or investment recommendations are established by the repository review.
 - Link: https://github.com/Ayushbh6/SEC-Summariser
 
 ### This website
-- The conversational agent itself is a project: a real-time voice agent with generative UI, built by Ayush.
+- Iris is itself a project: a voice and text portfolio assistant with validated generative UI, a server-owned voice relay and anonymous usage controls.
+- Public source: https://github.com/Ayushbh6/Iris
 
 ## Skills
 
